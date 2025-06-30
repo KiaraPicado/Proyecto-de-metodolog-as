@@ -1,41 +1,41 @@
-document.getElementById("formLogin").addEventListener("submit", async function(e) {
+document.getElementById("formLogin").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const correo = document.getElementById("correo").value;
-  const clave = document.getElementById("clave").value;
+  const correo = document.getElementById("correo").value.trim();
+  const clave  = document.getElementById("clave").value.trim();
   const loginMsg = document.getElementById("login-msg");
-
-  // Clear previous messages
   loginMsg.innerHTML = "";
 
-  try {
-    const response = await fetch("https://api-metodologias-production.up.railway.app/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ correo, clave })
-    });
+  if (!correo || !clave) {
+    loginMsg.innerHTML = '<div class="alert alert-warning">Debe completar ambos campos.</div>';
+    return;
+  }
 
-    const data = await response.json();
-    console.log(data);
-    
-    if (response.ok) {
-      // Store user session data
-      localStorage.setItem('userSession', JSON.stringify(data.usuario || { correo }));
-      
-      // Show success message briefly before redirect
-      loginMsg.innerHTML = '<div class="alert alert-success">¡Inicio de sesión exitoso! Redirigiendo...</div>';
-      
-      // Redirect to main dashboard
-      setTimeout(() => {
-        window.location.href = "pages/inicio.html";
-      }, 1000);
+  try {
+    const { data, status } = await axios.post(
+      "https://api-metodologias-production.up.railway.app/api/login",
+      { correo, clave },
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    if (status === 200 && data.success && data.data) {
+      const { id, correo: correoUsr, nombre, rol_global } = data.data;
+      const { token } = data;
+
+      // Guarda la info del usuario y el token
+      localStorage.setItem("userSession", JSON.stringify({ id, correo: correoUsr, nombre, rol_global, token }));
+
+      loginMsg.innerHTML =
+        '<div class="alert alert-success">¡Inicio de sesión exitoso! Redirigiendo…</div>';
+
+      setTimeout(() => (window.location.href = "pages/inicio.html"), 1000);
     } else {
-      loginMsg.innerHTML = `<div class="alert alert-danger">${data.message || "¡Credenciales incorrectas o su usuario no está registrado!"}</div>`;
+      loginMsg.innerHTML =
+        `<div class="alert alert-danger">${data.message || "Credenciales incorrectas o usuario no registrado."}</div>`;
     }
-  } catch (error) {
-    loginMsg.innerHTML = '<div class="alert alert-danger">Error de conexión con el servidor</div>';
-    console.error(error);
+  } catch (err) {
+    console.error(err);
+    loginMsg.innerHTML =
+      '<div class="alert alert-danger">No fue posible conectarse al servidor. Intente de nuevo.</div>';
   }
 });
