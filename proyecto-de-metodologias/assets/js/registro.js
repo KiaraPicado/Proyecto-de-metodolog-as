@@ -5,8 +5,7 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
   const clave = document.getElementById('clave').value;
   const rol = document.getElementById('rol').value;
   const msg = document.getElementById('register-msg');
-  msg.textContent = "";
-  msg.className = "msg";
+  msg.innerHTML = "";
   const body = { nombre, correo, clave, rol_global: rol };
 
   try {
@@ -16,16 +15,18 @@ document.getElementById('formRegistro').addEventListener('submit', async (e) => 
       body: JSON.stringify(body)
     });
     if (res.ok) {
-      msg.textContent = "Usuario registrado exitosamente";
-      msg.classList.add("success");
+      msg.innerHTML = '<div class="alert alert-success">Usuario registrado exitosamente. Redirigiendo al login...</div>';
       document.getElementById('formRegistro').reset();
+      
+      // Redirect to login after successful registration
+      setTimeout(() => {
+        window.location.href = "../index.html";
+      }, 2000);
     } else {
       const data = await res.json().catch(() => ({}));
-      msg.textContent = data?.message || "Error al registrar usuario.";
-      msg.classList.add("error");
+      msg.innerHTML = `<div class="alert alert-danger">${data?.message || "Error al registrar usuario."}</div>`;
     }
   } catch {
-    msg.textContent = "Error de conexión.";
-    msg.classList.add("error");
+    msg.innerHTML = '<div class="alert alert-danger">Error de conexión.</div>';
   }
 });

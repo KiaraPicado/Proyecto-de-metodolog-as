@@ -1,0 +1,43 @@
+/* =========   Bootstrap overrides & helpers   ========= */
+:root {
+  /* Paleta principal */
+  --c-primary:   #348888; /* base */
+  --c-secondary: #22BABB; /* acento 1 */
+  --c-info:      #9EF8EE; /* acento 2 */
+  --c-warning:   #FA7F08; /* acento 3 */
+  --c-danger:    #F24405; /* acento 4 */
+
+  /* Mapeo a variables de Bootstrap */
+  --bs-primary:   var(--c-primary);
+  --bs-secondary: var(--c-secondary);
+  --bs-info:      var(--c-info);
+  --bs-warning:   var(--c-warning);
+  --bs-danger:    var(--c-danger);
+}
+
+body {
+  background: linear-gradient(135deg, var(--c-info) 0%, #ffffff 50%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-primary {
+  /* Degradado bonito en botones principales */
+  background-image: linear-gradient(90deg, var(--c-primary), var(--c-secondary));
+  border: none;
+}
+.btn-primary:hover {
+  background-image: linear-gradient(90deg, var(--c-secondary), var(--c-primary));
+}
+
+.card {
+  border: none;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .06);
+}
+
+/* Contenedores centrales para formularios */
+.form-wrapper {
+  max-width: 420px;
+  margin: 5rem auto;
+}
