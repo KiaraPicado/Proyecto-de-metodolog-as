@@ -1,0 +1,30 @@
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color:aliceblue;
+      padding: 0px;
+    }
+
+    h2 {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      margin-bottom: 30px;
+    }
+
+
+
+    .btn {
+      background-color: #286aa7;
+      color: white;
+      padding: 8px 12px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      background-color: #0c9ac5;
+    }
+.card-body{
+   background-color:rgb(224, 255, 247);
+}
