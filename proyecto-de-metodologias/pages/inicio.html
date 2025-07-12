@@ -213,6 +213,7 @@
                 <button class="btn btn-outline-info" data-section="perfil">
                   <i class="bi bi-person-gear me-2"></i>Configurar Perfil
                 </button>
+              <span id="pizarraBtnContainer"></span>
               </div>
             </div>
           </div>
@@ -233,21 +234,58 @@
     // Navigation functionality
     document.addEventListener('DOMContentLoaded', function() {
       const navLinks = document.querySelectorAll('.sidebar .nav-link[data-section]');
-      const quickAccessBtns = document.querySelectorAll('[data-section]');
+      const quickAccessBtns = document.querySelectorAll('.card-body [data-section]');
       const dashboardSection = document.getElementById('dashboard-section');
       const dynamicContent = document.getElementById('dynamic-content');
-      
+      const pizarraBtnContainer = document.getElementById('pizarraBtnContainer');
+
+      // Load user info and show/hide pizarra button
+      let userRole = '';
+      const userSession = localStorage.getItem('userSession');
+      if (userSession) {
+        try {
+          const userData = JSON.parse(userSession);
+          document.getElementById('userName').textContent = userData.nombre || 'Usuario';
+          userRole = userData.rol || '';
+        } catch (e) {
+          console.error('Error parsing user session:', e);
+        }
+      }
+
+      // Mostrar botón solo si es editor o administrador
+      if (userRole === 'editor' || userRole === 'administrador') {
+        pizarraBtnContainer.innerHTML = `
+          <button class="btn btn-outline-warning" data-section="pizarra">
+            <i class="bi bi-easel me-2"></i>Crear Pizarra Compartida
+          </button>
+        `;
+        // Actualizar quickAccessBtns para incluir el nuevo botón
+        // Se debe volver a seleccionar los botones después de agregar el botón dinámicamente
+        setTimeout(() => {
+          const updatedQuickAccessBtns = document.querySelectorAll('.card-body [data-section]');
+          updatedQuickAccessBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              if (this.getAttribute('data-section')) {
+                e.preventDefault();
+                const section = this.getAttribute('data-section');
+                handleNavigation(section);
+              }
+            });
+          });
+        }, 0);
+      }
+
       // Handle navigation clicks
       function handleNavigation(section) {
         // Remove active class from all nav links
         navLinks.forEach(link => link.classList.remove('active'));
-        
+
         // Add active class to clicked link
         const activeLink = document.querySelector(`[data-section="${section}"]`);
         if (activeLink && activeLink.classList.contains('nav-link')) {
           activeLink.classList.add('active');
         }
-        
+
         // Show appropriate content
         if (section === 'dashboard') {
           dashboardSection.style.display = 'block';
@@ -258,7 +296,7 @@
           loadSection(section);
         }
       }
-      
+
       // Load external sections
       function loadSection(section) {
         let url = '';
@@ -285,8 +323,25 @@
               </div>
             `;
             return;
+          case 'pizarra':
+            dynamicContent.innerHTML = `
+              <div class="card">
+                <div class="card-header bg-warning text-dark">
+                  <h3>Pizarra Compartida</h3>
+                </div>
+                <div class="card-body">
+                  <p>Como estudiante, puedes crear una pizarra compartida para colaborar en tiempo real.</p>
+                  <div class="alert alert-warning">
+                    <i class="bi bi-easel me-2"></i>
+                    Esta función está en desarrollo. Pronto podrás dibujar y compartir ideas con tus compañeros.
+                  </div>
+                  <!-- Aquí irá la funcionalidad de la pizarra -->
+                </div>
+              </div>
+            `;
+            return;
         }
-        
+
         if (url) {
           // Load content via iframe or fetch
           dynamicContent.innerHTML = `
@@ -298,7 +353,7 @@
           `;
         }
       }
-      
+
       // Add event listeners
       navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
@@ -307,7 +362,7 @@
           handleNavigation(section);
         });
       });
-      
+
       quickAccessBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
           if (this.getAttribute('data-section')) {
@@ -317,7 +372,7 @@
           }
         });
       });
-      
+
       // Logout functionality
       document.getElementById('logoutBtn').addEventListener('click', function(e) {
         e.preventDefault();
@@ -326,17 +381,6 @@
           window.location.href = '../index.html';
         }
       });
-      
-      // Load user info
-      const userSession = localStorage.getItem('userSession');
-      if (userSession) {
-        try {
-          const userData = JSON.parse(userSession);
-          document.getElementById('userName').textContent = userData.nombre || 'Usuario';
-        } catch (e) {
-          console.error('Error parsing user session:', e);
-        }
-      }
     });
   </script>
 </body>
