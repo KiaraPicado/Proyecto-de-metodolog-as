@@ -22,7 +22,13 @@ document.getElementById("formLogin").addEventListener("submit", async (e) => {
       const { id, correo: correoUsr, nombre, rol_global } = data.data;
       const { token } = data;
 
-      // Guarda la info del usuario y el token
+      // Guarda la info del usuario y el token en el formato que espera inicio.html
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("userId", id);
+      localStorage.setItem("userName", nombre);
+      localStorage.setItem("userEmail", correoUsr);
+      
+      // También mantener la session completa por compatibilidad
       localStorage.setItem("userSession", JSON.stringify({ id, correo: correoUsr, nombre, rol_global, token }));
 
       loginMsg.innerHTML =
