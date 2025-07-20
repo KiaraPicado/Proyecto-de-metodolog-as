@@ -50,7 +50,13 @@ class LoginModule {
       }
     } catch (error) {
       console.error(error);
-      this.showErrorMessage("No fue posible conectarse al servidor. Intente de nuevo.");
+      const errorMessage = "No fue posible conectarse al servidor. Intente de nuevo.";
+      this.showErrorMessage(errorMessage);
+      
+      // Usar toast si está disponible
+      if (typeof showError === 'function') {
+        showError(errorMessage, 6000, 'Error de Conexión');
+      }
     }
   }
 
@@ -72,17 +78,32 @@ class LoginModule {
     if (this.loginMsg) {
       this.loginMsg.innerHTML = '<div class="alert alert-success">¡Inicio de sesión exitoso! Redirigiendo…</div>';
     }
+    
+    // Usar toast si está disponible
+    if (typeof showSuccess === 'function') {
+      showSuccess('¡Bienvenido de vuelta!', 3000, 'Inicio de Sesión Exitoso');
+    }
   }
 
   showErrorMessage(message) {
     if (this.loginMsg) {
       this.loginMsg.innerHTML = `<div class="alert alert-danger">${message}</div>`;
     }
+    
+    // Usar toast si está disponible
+    if (typeof showError === 'function') {
+      showError(message, 6000, 'Error de Acceso');
+    }
   }
 
   showWarningMessage(message) {
     if (this.loginMsg) {
       this.loginMsg.innerHTML = `<div class="alert alert-warning">${message}</div>`;
+    }
+    
+    // Usar toast si está disponible
+    if (typeof showWarning === 'function') {
+      showWarning(message, 5000, 'Campos Requeridos');
     }
   }
 

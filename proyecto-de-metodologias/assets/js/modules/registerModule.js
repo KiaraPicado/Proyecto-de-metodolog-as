@@ -52,6 +52,11 @@ class RegisterModule {
     } catch (error) {
       console.error(error);
       this.showErrorMessage(error.message);
+      
+      // Usar toast si está disponible
+      if (typeof showError === 'function') {
+        showError(error.message || 'Error al registrar usuario', 6000, 'Error de Registro');
+      }
     }
   }
 
@@ -98,11 +103,21 @@ class RegisterModule {
     if (this.registerMsg) {
       this.registerMsg.innerHTML = '<div class="alert alert-success">Usuario registrado exitosamente. Redirigiendo al login...</div>';
     }
+    
+    // Usar toast si está disponible
+    if (typeof showSuccess === 'function') {
+      showSuccess('¡Cuenta creada exitosamente! Redirigiendo al login...', 4000, 'Registro Completado');
+    }
   }
 
   showErrorMessage(message) {
     if (this.registerMsg) {
       this.registerMsg.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+    }
+    
+    // Usar toast si está disponible
+    if (typeof showError === 'function') {
+      showError(message, 6000, 'Error de Validación');
     }
   }
 

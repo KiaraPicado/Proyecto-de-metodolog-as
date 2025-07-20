@@ -3,7 +3,10 @@ const WhiteboardModule = {
   // Estado del módulo
   boards: [],
   filteredBoards: [],
+  groups: [],
   currentUser: null,
+  currentBoardId: null,
+  currentBoardCards: [],
 
   // Inicializar el módulo
   init() {
@@ -14,50 +17,46 @@ const WhiteboardModule = {
     };
 
     this.setupEventListeners();
+    this.loadGroups();
     this.loadBoards();
   },
 
+  // ========================================
+  // MÉTODOS DE CONFIGURACIÓN Y UTILIDADES
+  // ========================================
+
   // Configurar event listeners
   setupEventListeners() {
-    // Botón para nueva pizarra
     const newBoardBtn = document.getElementById('newBoardBtn');
     if (newBoardBtn) {
       newBoardBtn.addEventListener('click', () => this.showNewBoardModal());
     }
 
-    // Botón para crear pizarra
     const createBoardBtn = document.getElementById('createBoardBtn');
     if (createBoardBtn) {
       createBoardBtn.addEventListener('click', () => this.createBoard());
     }
 
-    // Botón para crear tarjeta
     const createCardBtn = document.getElementById('createCardBtn');
     if (createCardBtn) {
       createCardBtn.addEventListener('click', () => this.createCard());
     }
 
-    // Filtros
     this.setupFilters();
   },
 
   // Configurar filtros
   setupFilters() {
     const searchInput = document.getElementById('searchBoards');
-    const categoryFilter = document.getElementById('filterCategory');
-    const priorityFilter = document.getElementById('filterPriority');
+    const groupFilter = document.getElementById('filterGroup');
     const clearFiltersBtn = document.getElementById('clearFilters');
 
     if (searchInput) {
       searchInput.addEventListener('input', () => this.applyFilters());
     }
 
-    if (categoryFilter) {
-      categoryFilter.addEventListener('change', () => this.applyFilters());
-    }
-
-    if (priorityFilter) {
-      priorityFilter.addEventListener('change', () => this.applyFilters());
+    if (groupFilter) {
+      groupFilter.addEventListener('change', () => this.applyFilters());
     }
 
     if (clearFiltersBtn) {
@@ -65,17 +64,81 @@ const WhiteboardModule = {
     }
   },
 
+  // Cargar grupos
+  async loadGroups() {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const userSession = localStorage.getItem('userSession');
+      
+      if (!authToken && !userSession) {
+        this.setDefaultGroups();
+        return;
+      }
+
+      const response = await groupService.getUserGroups();
+      if (response.success) {
+        this.groups = response.data || [];
+        this.populateGroupSelects();
+      } else {
+        this.setDefaultGroups();
+      }
+    } catch (error) {
+      console.error('Error al cargar grupos:', error);
+      this.setDefaultGroups();
+    }
+  },
+
+  // Establecer grupos predeterminados
+  setDefaultGroups() {
+    this.groups = [
+      { id: 1, nombre: 'Grupo General' },
+      { id: 2, nombre: 'Equipo de Desarrollo' },
+      { id: 3, nombre: 'Gestión de Proyectos' }
+    ];
+    this.populateGroupSelects();
+  },
+
+  // Poblar selects de grupos
+  populateGroupSelects() {
+    const boardGroupSelect = document.getElementById('boardGroup');
+    const filterGroupSelect = document.getElementById('filterGroup');
+
+    [boardGroupSelect, filterGroupSelect].forEach(select => {
+      if (select) {
+        while (select.children.length > 1) {
+          select.removeChild(select.lastChild);
+        }
+      }
+    });
+
+    this.groups.forEach(group => {
+      if (boardGroupSelect) {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = group.nombre;
+        boardGroupSelect.appendChild(option);
+      }
+
+      if (filterGroupSelect) {
+        const option = document.createElement('option');
+        option.value = group.id;
+        option.textContent = group.nombre;
+        filterGroupSelect.appendChild(option);
+      }
+    });
+  },
+
   // Aplicar filtros
   applyFilters() {
     const searchTerm = document.getElementById('searchBoards')?.value.toLowerCase() || '';
-    const categoryFilter = document.getElementById('filterCategory')?.value || '';
-    const priorityFilter = document.getElementById('filterPriority')?.value || '';
+    const groupFilter = document.getElementById('filterGroup')?.value || '';
 
     this.filteredBoards = this.boards.filter(board => {
       const matchesSearch = board.titulo.toLowerCase().includes(searchTerm) ||
                           (board.descripcion && board.descripcion.toLowerCase().includes(searchTerm));
-      // Por ahora no hay filtros de categoría y prioridad en la API
-      return matchesSearch;
+      const matchesGroup = !groupFilter || board.grupo_id.toString() === groupFilter;
+      
+      return matchesSearch && matchesGroup;
     });
 
     this.renderBoards();
@@ -84,12 +147,10 @@ const WhiteboardModule = {
   // Limpiar filtros
   clearFilters() {
     const searchInput = document.getElementById('searchBoards');
-    const categoryFilter = document.getElementById('filterCategory');
-    const priorityFilter = document.getElementById('filterPriority');
+    const groupFilter = document.getElementById('filterGroup');
 
     if (searchInput) searchInput.value = '';
-    if (categoryFilter) categoryFilter.value = '';
-    if (priorityFilter) priorityFilter.value = '';
+    if (groupFilter) groupFilter.value = '';
 
     this.filteredBoards = [...this.boards];
     this.renderBoards();
@@ -98,6 +159,17 @@ const WhiteboardModule = {
   // Cargar pizarras
   async loadBoards() {
     try {
+      const authToken = localStorage.getItem('authToken');
+      const userSession = localStorage.getItem('userSession');
+      
+      if (!authToken && !userSession) {
+        if (window.toastService) {
+          window.toastService.error('Error de autenticación. Por favor inicia sesión nuevamente.');
+        }
+        setTimeout(() => window.location.href = '../index.html', 2000);
+        return;
+      }
+
       const response = await whiteboardService.getAllBoards();
       
       if (response.success && response.data) {
@@ -110,41 +182,34 @@ const WhiteboardModule = {
           creado_por: board.creado_por,
           creador_nombre: board.creador_nombre,
           creado_en: board.creado_en,
-          cards: [] // Las tarjetas se cargan por separado
+          cards: []
         }));
         
         this.filteredBoards = [...this.boards];
         this.renderBoards();
       } else {
-        this.showToast('Error al cargar pizarras. Creando datos de ejemplo.', 'warning');
-        this.boards = this.getExampleBoards();
-        this.filteredBoards = [...this.boards];
+        this.boards = [];
+        this.filteredBoards = [];
         this.renderBoards();
       }
     } catch (error) {
       console.error('Error loading boards:', error);
-      this.showToast('Error al cargar pizarras. Creando datos de ejemplo.', 'warning');
-      this.boards = this.getExampleBoards();
-      this.filteredBoards = [...this.boards];
+      
+      if (error.message.includes('Invalid token') || error.message.includes('Unauthorized')) {
+        if (window.toastService) {
+          window.toastService.warning('Sesión expirada. Redirigiendo al login...');
+        }
+        setTimeout(() => window.location.href = '../index.html', 2000);
+      } else {
+        if (window.toastService) {
+          window.toastService.error('Error al cargar pizarras: ' + error.message);
+        }
+      }
+      
+      this.boards = [];
+      this.filteredBoards = [];
       this.renderBoards();
     }
-  },
-
-  // Datos de ejemplo si falla la API
-  getExampleBoards() {
-    return [
-      {
-        id: 1,
-        titulo: "Sprint Planning",
-        descripcion: "Pizarra para planificación del sprint",
-        grupo_id: 1,
-        nombre_grupo: "Equipo Backend",
-        creado_por: this.currentUser.userId,
-        creador_nombre: this.currentUser.userName,
-        creado_en: new Date().toISOString(),
-        cards: []
-      }
-    ];
   },
 
   // Renderizar pizarras
@@ -186,17 +251,15 @@ const WhiteboardModule = {
     return boardEl;
   },
 
-  // Mostrar modal para nueva pizarra
+  // Mostrar modales
   showNewBoardModal() {
     const modal = new bootstrap.Modal(document.getElementById('newBoardModal'));
     modal.show();
   },
 
-  // Mostrar modal para nueva tarjeta
   showNewCardModal(boardId) {
     const modal = new bootstrap.Modal(document.getElementById('newCardModal'));
     modal.show();
-    
     document.getElementById('createCardBtn').dataset.boardId = boardId;
   },
 
@@ -204,9 +267,12 @@ const WhiteboardModule = {
   async createBoard() {
     const title = document.getElementById('boardTitle').value.trim();
     const content = document.getElementById('boardContent').value.trim();
+    const groupId = document.getElementById('boardGroup').value;
 
-    if (!title || !content) {
-      this.showToast('Por favor completa todos los campos obligatorios', 'danger');
+    if (!title || !content || !groupId) {
+      if (window.toastService) {
+        window.toastService.error('Por favor completa todos los campos obligatorios');
+      }
       return;
     }
 
@@ -220,7 +286,7 @@ const WhiteboardModule = {
 
     try {
       const boardData = {
-        grupo_id: 1, // Por defecto grupo 1, podrías hacerlo dinámico
+        grupo_id: parseInt(groupId),
         titulo: title,
         descripcion: content
       };
@@ -228,33 +294,29 @@ const WhiteboardModule = {
       const result = await whiteboardService.createBoard(boardData);
 
       if (result.success) {
-        // Crear nueva pizarra localmente para mostrarla inmediatamente
-        const newBoard = {
-          id: result.data.insertId,
-          titulo: title,
-          descripcion: content,
-          grupo_id: 1,
-          nombre_grupo: 'Mi Grupo',
-          creado_por: this.currentUser.userId,
-          creador_nombre: this.currentUser.userName,
-          creado_en: new Date().toISOString(),
-          cards: []
-        };
+        // Emitir evento WebSocket
+        this.emitPizarraCreated(result.data, title, content, groupId);
         
-        this.boards.push(newBoard);
-        this.applyFilters();
+        // Recargar pizarras
+        await this.loadBoards();
 
         const modal = bootstrap.Modal.getInstance(document.getElementById('newBoardModal'));
         modal.hide();
         document.getElementById('newBoardForm').reset();
         
-        this.showToast('Pizarra creada exitosamente');
+        if (window.toastService) {
+          window.toastService.success('Pizarra creada exitosamente');
+        }
       } else {
-        this.showToast(result.message || 'Error al crear la pizarra.', 'danger');
+        if (window.toastService) {
+          window.toastService.error(result.message || 'Error al crear la pizarra');
+        }
       }
     } catch (error) {
       console.error('Error:', error);
-      this.showToast('Error al crear la pizarra. Por favor intenta nuevamente.', 'danger');
+      if (window.toastService) {
+        window.toastService.error('Error al crear la pizarra');
+      }
     } finally {
       spinner.classList.add('d-none');
       buttonText.textContent = 'Crear Pizarra';
@@ -262,14 +324,16 @@ const WhiteboardModule = {
     }
   },
 
-  // Crear nueva tarjeta
+  // Crear nueva tarjeta (usando CardModule)
   async createCard() {
     const title = document.getElementById('cardTitle').value.trim();
     const content = document.getElementById('cardContent').value.trim();
     const boardId = parseInt(document.getElementById('createCardBtn').dataset.boardId);
     
     if (!title || !content) {
-      this.showToast('Por favor completa todos los campos obligatorios', 'danger');
+      if (window.toastService) {
+        window.toastService.error('Por favor completa todos los campos obligatorios');
+      }
       return;
     }
     
@@ -280,167 +344,144 @@ const WhiteboardModule = {
     button.disabled = true;
     
     try {
-      const cardData = {
-        pizarra_id: boardId,
-        titulo: title,
-        contenido: content
-      };
-
-      const result = await whiteboardService.createCard(cardData);
+      // Inicializar CardModule con usuario actual
+      CardModule.init(this.currentUser, this.currentBoardId);
+      
+      // Usar CardModule para crear la tarjeta
+      const result = await CardModule.createCard(title, content, boardId);
       
       if (result.success) {
-        // Agregar tarjeta a la pizarra local
-        const board = this.boards.find(b => b.id === boardId);
-        if (board) {
-          if (!board.cards) board.cards = [];
-          board.cards.push(result.data);
-        }
+        // Recargar la vista local
+        await this.loadBoardCards(boardId);
         
         const modal = bootstrap.Modal.getInstance(document.getElementById('newCardModal'));
         modal.hide();
         document.getElementById('newCardForm').reset();
         
-        // Si el modal de pizarra está abierto, recargarlo
-        if (document.getElementById('boardModal').classList.contains('show')) {
-          this.openBoard(board);
+        if (window.toastService) {
+          window.toastService.success('Nota creada exitosamente');
         }
-        
-        this.showToast('Tarjeta creada exitosamente');
-      } else {
-        this.showToast(result.message || 'Error al crear la tarjeta.', 'danger');
       }
     } catch (error) {
       console.error('Error:', error);
-      this.showToast('Error al crear la tarjeta. Por favor intenta nuevamente.', 'danger');
+      if (window.toastService) {
+        window.toastService.error(error.message);
+      }
     } finally {
       spinner.classList.add('d-none');
       button.disabled = false;
     }
   },
 
-  // Abrir pizarra y cargar sus tarjetas
+  // Cargar tarjetas de una pizarra específica
+  async loadBoardCards(boardId) {
+    try {
+      const response = await whiteboardService.getBoardCards(boardId);
+      if (response.success) {
+        this.currentBoardCards = response.data;
+        // Si el modal está abierto, actualizar la vista
+        if (document.getElementById('boardModal').classList.contains('show')) {
+          const board = this.boards.find(b => b.id === boardId);
+          if (board) {
+            board.cards = this.currentBoardCards;
+            this.renderBoardCards(board);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading board cards:', error);
+      if (window.toastService) {
+        window.toastService.error('Error al cargar las tarjetas');
+      }
+    }
+  },
+
+  // Abrir pizarra
   async openBoard(board) {
+    this.currentBoardId = board.id;
     document.getElementById('boardModalTitle').textContent = board.titulo;
     document.getElementById('boardModal').dataset.boardId = board.id;
     
+    // Inicializar CardModule con usuario actual
+    CardModule.init(this.currentUser, this.currentBoardId);
+    
     try {
-      // Cargar tarjetas de la pizarra
+      // Cargar tarjetas
       const cardsResponse = await whiteboardService.getBoardCards(board.id);
       
       if (cardsResponse.success) {
         board.cards = cardsResponse.data;
+        this.currentBoardCards = cardsResponse.data;
       } else {
         board.cards = [];
+        this.currentBoardCards = [];
       }
     } catch (error) {
       console.error('Error loading cards:', error);
       board.cards = [];
+      this.currentBoardCards = [];
+      if (window.toastService) {
+        window.toastService.warning('Error al cargar las tarjetas de la pizarra');
+      }
     }
 
-    const columnsContainer = document.getElementById('boardColumns');
-    columnsContainer.innerHTML = '';
-    
-    // Crear una sola columna para las tarjetas (la API no maneja estados)
-    const column = document.createElement('div');
-    column.className = 'cards-column';
-    
-    const columnHeader = document.createElement('div');
-    columnHeader.className = 'column-header bg-primary';
-    columnHeader.innerHTML = `
-      <h6 class="column-title mb-0 text-white">
-        <i class="bi bi-kanban me-2"></i>Tarjetas (${board.cards.length})
-      </h6>
-    `;
-    column.appendChild(columnHeader);
-    
-    const cardsContainer = document.createElement('div');
-    cardsContainer.className = 'cards-container';
-    
-    // Agregar tarjetas
-    board.cards.forEach(card => {
-      cardsContainer.appendChild(this.createCardElement(card));
-    });
-    
-    // Botón para agregar nueva tarjeta
-    const addCardBtn = document.createElement('button');
-    addCardBtn.className = 'add-card-btn';
-    addCardBtn.innerHTML = '<i class="bi bi-plus"></i> Agregar tarjeta';
-    addCardBtn.addEventListener('click', () => {
-      this.showNewCardModal(board.id);
-    });
-    cardsContainer.appendChild(addCardBtn);
-    
-    column.appendChild(cardsContainer);
-    columnsContainer.appendChild(column);
+    this.renderBoardCards(board);
     
     const modal = new bootstrap.Modal(document.getElementById('boardModal'));
     modal.show();
+    
+    // Listener para salir de la pizarra al cerrar modal
+    const modalElement = document.getElementById('boardModal');
+    modalElement.addEventListener('hidden.bs.modal', () => {
+      this.currentBoardId = null;
+    }, { once: true });
   },
 
-  // Crear elemento de tarjeta
-  createCardElement(card) {
-    const cardEl = document.createElement('div');
-    cardEl.className = 'card-item';
-    cardEl.dataset.cardId = card.id;
-    cardEl.innerHTML = `
-      <div class="d-flex justify-content-between align-items-start mb-2">
-        <h6 class="card-title mb-0">${card.titulo}</h6>
-        <button class="btn btn-sm btn-outline-danger delete-card-btn" data-card-id="${card.id}">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-      <p class="card-content">${card.contenido}</p>
-      <div class="card-footer">
-        <small class="text-muted">
-          <i class="bi bi-person me-1"></i>${card.creador_nombre}
-        </small>
-        <small class="text-muted">
-          <i class="bi bi-calendar me-1"></i>${this.formatDate(new Date(card.creado_en))}
-        </small>
-      </div>
+  // Renderizar tarjetas usando CardModule
+  renderBoardCards(board) {
+    const columnsContainer = document.getElementById('boardColumns');
+    columnsContainer.innerHTML = '';
+    
+    const boardContainer = document.createElement('div');
+    boardContainer.className = 'simple-board-container';
+    
+    const boardHeader = document.createElement('div');
+    boardHeader.className = 'board-header d-flex justify-content-between align-items-center mb-3';
+    boardHeader.innerHTML = `
+      <h6 class="mb-0">
+        <i class="bi bi-sticky me-2"></i>Notas y Tareas (${board.cards.length})
+      </h6>
+      <button class="btn btn-primary btn-sm" id="addCardToBoard">
+        <i class="bi bi-plus"></i> Agregar Nota
+      </button>
     `;
     
-    // Event listener para eliminar tarjeta
-    const deleteBtn = cardEl.querySelector('.delete-card-btn');
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.deleteCard(card.id);
+    boardHeader.querySelector('#addCardToBoard').addEventListener('click', () => {
+      this.showNewCardModal(board.id);
     });
     
-    return cardEl;
-  },
-
-  // Eliminar tarjeta
-  async deleteCard(cardId) {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta tarjeta?')) {
-      return;
+    boardContainer.appendChild(boardHeader);
+    
+    const cardsGrid = document.createElement('div');
+    cardsGrid.className = 'cards-grid';
+    
+    if (board.cards.length === 0) {
+      cardsGrid.innerHTML = `
+        <div class="empty-board-message">
+          <i class="bi bi-sticky display-1 text-muted"></i>
+          <h5 class="text-muted mt-3">No hay notas en esta pizarra</h5>
+          <p class="text-muted">Agrega tu primera nota para comenzar a colaborar</p>
+        </div>
+      `;
+    } else {
+      // Usar CardModule para crear elementos de tarjeta
+      board.cards.forEach(card => {
+        cardsGrid.appendChild(CardModule.createCardElement(card));
+      });
     }
-
-    try {
-      const result = await whiteboardService.deleteCard(cardId);
-      
-      if (result.success) {
-        // Remover tarjeta del DOM
-        const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
-        if (cardElement) {
-          cardElement.remove();
-        }
-        
-        // Remover de los datos locales
-        this.boards.forEach(board => {
-          if (board.cards) {
-            board.cards = board.cards.filter(card => card.id !== cardId);
-          }
-        });
-        
-        this.showToast('Tarjeta eliminada exitosamente');
-      } else {
-        this.showToast('Error al eliminar la tarjeta', 'danger');
-      }
-    } catch (error) {
-      console.error('Error deleting card:', error);
-      this.showToast('Error al eliminar la tarjeta', 'danger');
-    }
+    
+    boardContainer.appendChild(cardsGrid);
+    columnsContainer.appendChild(boardContainer);
   },
 
   // Formatear fecha
@@ -454,34 +495,5 @@ const WhiteboardModule = {
       hour12: true 
     };
     return date.toLocaleString('es-ES', options);
-  },
-
-  // Mostrar notificación
-  showToast(message, type = 'success') {
-    const toastContainer = document.getElementById('toastContainer');
-    if (!toastContainer) return;
-
-    const toastEl = document.createElement('div');
-    toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-    
-    toastEl.innerHTML = `
-      <div class="d-flex">
-        <div class="toast-body">
-          ${message}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    `;
-    
-    toastContainer.appendChild(toastEl);
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
-    
-    toastEl.addEventListener('hidden.bs.toast', function() {
-      toastEl.remove();
-    });
   }
 };

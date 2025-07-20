@@ -189,8 +189,8 @@ class DashboardModule {
    * Cargar sección de crear foros
    */
   loadForumsCreateSection() {
-    // Redirigir a la página de crear foros
-    window.location.href = 'forums/create.html';
+    // Redirigir a la página de foros (ahora incluye crear en modal)
+    window.location.href = 'forums/list.html';
   }
 
   /**
@@ -275,13 +275,19 @@ class DashboardModule {
    * Manejar logout
    */
   handleLogout() {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userName');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('userSession');
-      window.location.href = '../index.html';
+    // Usar el nuevo servicio de autenticación
+    if (typeof authService !== 'undefined') {
+      authService.confirmLogout();
+    } else {
+      // Fallback al método anterior
+      if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userSession');
+        window.location.href = '../index.html';
+      }
     }
   }
 

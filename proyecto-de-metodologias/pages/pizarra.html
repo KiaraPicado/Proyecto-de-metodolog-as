@@ -11,6 +11,24 @@
   <link rel="stylesheet" href="../assets/css/components/messages.css">
   <link rel="stylesheet" href="../assets/css/components/whiteboards.css">
   <link rel="stylesheet" href="../assets/css/pages/dashboard.css">
+  <style>
+    /* Asegurar que los modales anidados funcionen correctamente */
+    .modal.show {
+      z-index: 1050;
+    }
+    
+    #newCardModal.show {
+      z-index: 1070 !important;
+    }
+    
+    .modal-backdrop {
+      z-index: 1040;
+    }
+    
+    .modal-backdrop.show + .modal-backdrop {
+      z-index: 1060;
+    }
+  </style>
 </head>
 <body>
   <!-- Sidebar -->
@@ -30,13 +48,9 @@
         <i class="bi bi-house-door"></i>
         Dashboard
       </a>
-      <a class="nav-link" href="forums/create.html">
-        <i class="bi bi-chat-dots"></i>
-        Agregar Foro
-      </a>
       <a class="nav-link" href="forums/list.html">
-        <i class="bi bi-list-ul"></i>
-        Lista de Foros
+        <i class="bi bi-chat-dots"></i>
+        Foros
       </a>
       <a class="nav-link active" href="pizarra.html">
         <i class="bi bi-easel me-2"></i>
@@ -68,27 +82,15 @@
     <div class="card mb-4">
       <div class="card-body">
         <div class="row g-3">
-          <div class="col-md-4">
+          <div class="col-md-6">
             <label for="searchBoards" class="form-label">Buscar pizarras</label>
             <input type="text" class="form-control" id="searchBoards" placeholder="Buscar por título...">
           </div>
-          <div class="col-md-3">
-            <label for="filterCategory" class="form-label">Categoría</label>
-            <select class="form-select" id="filterCategory">
-              <option value="">Todas las categorías</option>
-              <option value="proyecto">Proyecto</option>
-              <option value="reunion">Reunión</option>
-              <option value="tarea">Tarea</option>
-              <option value="estudio">Estudio</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label for="filterPriority" class="form-label">Prioridad</label>
-            <select class="form-select" id="filterPriority">
-              <option value="">Todas las prioridades</option>
-              <option value="alta">Alta</option>
-              <option value="media">Media</option>
-              <option value="baja">Baja</option>
+          <div class="col-md-4">
+            <label for="filterGroup" class="form-label">Grupo</label>
+            <select class="form-select" id="filterGroup">
+              <option value="">Todos los grupos</option>
+              <!-- Los grupos se cargarán dinámicamente -->
             </select>
           </div>
           <div class="col-md-2 d-flex align-items-end">
@@ -118,28 +120,17 @@
           <form id="newBoardForm">
             <div class="mb-3">
               <label for="boardTitle" class="form-label">Título de la pizarra*</label>
-              <input type="text" class="form-control" id="boardTitle" required maxlength="100" placeholder="Ej: Proyecto Final de Matemáticas">
+              <input type="text" class="form-control" id="boardTitle" required maxlength="100" placeholder="Ej: Sprint Planning - Equipo Backend">
             </div>
             <div class="mb-3">
               <label for="boardContent" class="form-label">Descripción*</label>
-              <textarea class="form-control" id="boardContent" rows="3" required maxlength="500" placeholder="Describe el objetivo y contenido de esta pizarra..."></textarea>
+              <textarea class="form-control" id="boardContent" rows="4" required maxlength="500" placeholder="Describe el objetivo y contenido de esta pizarra..."></textarea>
             </div>
             <div class="mb-3">
-              <label for="boardCategory" class="form-label">Categoría*</label>
-              <select class="form-select" id="boardCategory" required>
-                <option value="">Seleccione una categoría</option>
-                <option value="proyecto">Proyecto</option>
-                <option value="reunion">Reunión</option>
-                <option value="tarea">Tarea</option>
-                <option value="estudio">Estudio</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="boardPriority" class="form-label">Prioridad*</label>
-              <select class="form-select" id="boardPriority" required>
-                <option value="alta">Alta</option>
-                <option value="media" selected>Media</option>
-                <option value="baja">Baja</option>
+              <label for="boardGroup" class="form-label">Grupo*</label>
+              <select class="form-select" id="boardGroup" required>
+                <option value="">Seleccione un grupo</option>
+                <!-- Los grupos se cargarán dinámicamente -->
               </select>
             </div>
           </form>
@@ -156,30 +147,22 @@
   </div>
 
   <!-- Modal para crear nueva tarjeta -->
-  <div class="modal fade" id="newCardModal" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" id="newCardModal" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Crear nueva tarjeta</h5>
+          <h5 class="modal-title">Agregar nueva nota</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="newCardForm">
             <div class="mb-3">
-              <label for="cardTitle" class="form-label">Título*</label>
-              <input type="text" class="form-control" id="cardTitle" required maxlength="100" placeholder="Ej: Investigar bibliografía">
+              <label for="cardTitle" class="form-label">Título de la nota*</label>
+              <input type="text" class="form-control" id="cardTitle" required maxlength="100" placeholder="Ej: Revisar documentación del proyecto">
             </div>
             <div class="mb-3">
-              <label for="cardContent" class="form-label">Descripción*</label>
-              <textarea class="form-control" id="cardContent" rows="3" required maxlength="500" placeholder="Describe la tarea o actividad..."></textarea>
-            </div>
-            <div class="mb-3">
-              <label for="cardPriority" class="form-label">Prioridad</label>
-              <select class="form-select" id="cardPriority">
-                <option value="alta">Alta</option>
-                <option value="media" selected>Media</option>
-                <option value="baja">Baja</option>
-              </select>
+              <label for="cardContent" class="form-label">Contenido*</label>
+              <textarea class="form-control" id="cardContent" rows="4" required maxlength="500" placeholder="Escribe aquí el contenido de tu nota o tarea..."></textarea>
             </div>
           </form>
         </div>
@@ -187,7 +170,7 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-primary" id="createCardBtn">
             <span class="spinner-border spinner-border-sm d-none" id="createCardSpinner" role="status" aria-hidden="true"></span>
-            Crear Tarjeta
+            Agregar Nota
           </button>
         </div>
       </div>
@@ -208,7 +191,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <small class="text-muted me-auto">Arrastra las tarjetas entre columnas para cambiar su estado</small>
+          <small class="text-muted me-auto">Colabora con tu equipo agregando notas e ideas</small>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         </div>
       </div>
@@ -220,39 +203,14 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="../assets/js/services/toastService.js"></script>
   <script src="../assets/js/services/authService.js"></script>
+  <script src="../assets/js/services/groupService.js"></script>
   <script src="../assets/js/services/whiteboardService.js"></script>
+  <script src="../assets/js/services/webSocketService.js"></script>
+  <script src="../assets/js/modules/cardModule.js"></script>
   <script src="../assets/js/modules/whiteboardModule.js"></script>
-  <script>
-    // Inicializar la página de pizarras
-    document.addEventListener('DOMContentLoaded', function() {
-      // Verificar autenticación
-      const authToken = localStorage.getItem('authToken');
-      const userSession = localStorage.getItem('userSession');
-      
-      if (!authToken && !userSession) {
-        window.location.href = '../index.html';
-        return;
-      }
-      
-      // Mostrar nombre de usuario
-      const userName = localStorage.getItem('userName') || 'Usuario';
-      document.getElementById('userName').textContent = userName;
-      
-      // Inicializar módulo de pizarras
-      if (typeof WhiteboardModule !== 'undefined') {
-        WhiteboardModule.init();
-      }
-      
-      // Logout
-      document.getElementById('logoutBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-          localStorage.clear();
-          window.location.href = '../index.html';
-        }
-      });
-    });
-  </script>
+  <script src="../assets/js/pages/pizarra.js"></script>
 </body>
 </html>

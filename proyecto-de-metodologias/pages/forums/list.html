@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lista de foros - Estudio Colaborativo</title>
+    <title>Foros - Estudio Colaborativo</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -36,13 +36,9 @@
           <i class="bi bi-house-door"></i>
           Dashboard
         </a>
-        <a class="nav-link" href="create.html">
-          <i class="bi bi-chat-dots"></i>
-          Agregar Foro
-        </a>
         <a class="nav-link active" href="list.html">
-          <i class="bi bi-list-ul"></i>
-          Lista de Foros
+          <i class="bi bi-chat-dots"></i>
+          Foros
         </a>
         <a class="nav-link" href="../pizarra.html">
           <i class="bi bi-easel me-2"></i>
@@ -58,16 +54,83 @@
 
     <!-- Main Content -->
     <div class="main-content">
-      <div class="container py-5">
-        <div class="forum-header">
-          <h2>Lista de foros</h2>
-        </div>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Foros de Discusión</h1>
+        <button class="btn btn-primary" id="newForumBtn">
+          <i class="bi bi-plus-lg me-1"></i>Nuevo Foro
+        </button>
+      </div>
 
-        <div id="foroContainer" class="row g-4">
-          <!-- las tarjetas de foros se rellenan con JS -->
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Crea y participa en foros de discusión con tus compañeros. Comparte ideas, resuelve dudas y colabora en tus proyectos académicos.
+      </div>
+
+      <!-- Filtros y búsqueda -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="searchForums" class="form-label">Buscar foros</label>
+              <input type="text" class="form-control" id="searchForums" placeholder="Buscar por título o descripción...">
+            </div>
+            <div class="col-md-4">
+              <label for="sortForums" class="form-label">Ordenar por</label>
+              <select class="form-select" id="sortForums">
+                <option value="newest">Más recientes</option>
+                <option value="oldest">Más antiguos</option>
+                <option value="title">Título (A-Z)</option>
+                <option value="activity">Actividad reciente</option>
+              </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-outline-secondary w-100" id="clearFilters">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenedor de foros -->
+      <div id="foroContainer" class="row g-4">
+        <!-- las tarjetas de foros se rellenan con JS -->
+      </div>
+    </div>
+
+    <!-- Modal para crear nuevo foro -->
+    <div class="modal fade" id="newForumModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Crear nuevo foro</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formForo">
+              <div class="mb-3">
+                <label for="titulo" class="form-label">Título del foro*</label>
+                <input type="text" class="form-control" id="titulo" required maxlength="100" placeholder="Ej: Dudas sobre Algoritmos">
+              </div>
+              <div class="mb-3">
+                <label for="descripcion" class="form-label">Descripción*</label>
+                <textarea class="form-control" id="descripcion" rows="4" required maxlength="500" placeholder="Describe el tema y objetivo del foro..."></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="createForumBtn">
+              <span class="spinner-border spinner-border-sm d-none" id="createForumSpinner" role="status" aria-hidden="true"></span>
+              <span id="createForumBtnText">Crear Foro</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Contenedor de notificaciones -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
@@ -75,52 +138,11 @@
       crossorigin="anonymous"
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../../assets/js/services/toastService.js"></script>
     <script src="../../assets/js/services/authService.js"></script>
     <script src="../../assets/js/services/forumService.js"></script>
     <script src="../../assets/js/modules/forumListModule.js"></script>
-    <script>
-      // Inicializar dashboard
-      document.addEventListener("DOMContentLoaded", function () {
-        // Verificar autenticación
-        const authToken = localStorage.getItem("authToken");
-        const userSession = localStorage.getItem("userSession");
-
-        if (!authToken && !userSession) {
-          window.location.href = "../index.html";
-          return;
-        }
-
-        // Si hay sesión pero no están las keys individuales, crearlas
-        if (userSession && !authToken) {
-          try {
-            const session = JSON.parse(userSession);
-            localStorage.setItem("authToken", session.token);
-            localStorage.setItem("userId", session.id);
-            localStorage.setItem("userName", session.nombre);
-            localStorage.setItem("userEmail", session.correo);
-          } catch (error) {
-            console.error("Error al parsear la sesión:", error);
-            localStorage.clear();
-            window.location.href = "../index.html";
-            return;
-          }
-        }
-
-        // Mostrar nombre de usuario
-        const userName = localStorage.getItem("userName") || "Usuario";
-        document.getElementById("userName").textContent = userName;
-
-        // Logout
-        document
-          .getElementById("logoutBtn")
-          .addEventListener("click", function (e) {
-            e.preventDefault();
-            if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
-              localStorage.clear();
-              window.location.href = "../../index.html";
-            }
-          });
-      });
-    </script>
+    <script src="../../assets/js/modules/forumCreateModule.js"></script>
+    <script src="../../assets/js/pages/forums-list.js"></script>
   </body>
 </html>
