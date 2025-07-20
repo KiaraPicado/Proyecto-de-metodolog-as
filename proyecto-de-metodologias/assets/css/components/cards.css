@@ -1,0 +1,61 @@
+/* =========   Estilos de Tarjetas   ========= */
+
+/* Tarjetas */
+.card {
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--c-light), rgba(255, 255, 255, 0.9));
+  border-bottom: 1px solid var(--border-color);
+  border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+  padding: 1.5rem;
+  font-weight: 600;
+  color: var(--c-dark);
+}
+
+/* Tarjetas del dashboard */
+.dashboard-card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+}
+
+.dashboard-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dashboard-card .icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-card.primary .icon {
+  color: var(--c-primary);
+}
+
+.dashboard-card.success .icon {
+  color: var(--c-success);
+}
+
+.dashboard-card.info .icon {
+  color: var(--c-info);
+}
+
+.dashboard-card.warning .icon {
+  color: var(--c-warning);
+}

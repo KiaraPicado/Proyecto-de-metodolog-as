@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pizarra Compartida - Estudio Colaborativo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components/cards.css">
+  <link rel="stylesheet" href="../assets/css/components/messages.css">
+  <link rel="stylesheet" href="../assets/css/components/whiteboards.css">
+  <link rel="stylesheet" href="../assets/css/pages/dashboard.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo-section">
+      <h4 class="fw-bold text-primary mb-0">Estudio Colaborativo</h4>
+      <small class="text-muted">Panel Principal</small>
+    </div>
+    
+    <div class="user-info">
+      <small class="text-muted">Bienvenido</small>
+      <div class="fw-bold" id="userName">Usuario</div>
+    </div>
+    
+    <nav class="nav flex-column">
+      <a class="nav-link" href="dashboard.html">
+        <i class="bi bi-house-door"></i>
+        Dashboard
+      </a>
+      <a class="nav-link" href="forums/create.html">
+        <i class="bi bi-chat-dots"></i>
+        Agregar Foro
+      </a>
+      <a class="nav-link" href="forums/list.html">
+        <i class="bi bi-list-ul"></i>
+        Lista de Foros
+      </a>
+      <a class="nav-link active" href="pizarra.html">
+        <i class="bi bi-easel me-2"></i>
+        Pizarra Compartida
+      </a>
+      <hr>
+      <a class="nav-link text-danger" href="#" id="logoutBtn">
+        <i class="bi bi-box-arrow-right"></i>
+        Cerrar Sesión
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3 mb-0">Pizarras Compartidas</h1>
+      <button class="btn btn-primary" id="newBoardBtn">
+        <i class="bi bi-plus-lg me-1"></i>Nueva Pizarra
+      </button>
+    </div>
+
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>
+      Crea y administra pizarras colaborativas con tus compañeros. Organiza tarjetas en un sistema Kanban para gestionar proyectos eficientemente.
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="searchBoards" class="form-label">Buscar pizarras</label>
+            <input type="text" class="form-control" id="searchBoards" placeholder="Buscar por título...">
+          </div>
+          <div class="col-md-3">
+            <label for="filterCategory" class="form-label">Categoría</label>
+            <select class="form-select" id="filterCategory">
+              <option value="">Todas las categorías</option>
+              <option value="proyecto">Proyecto</option>
+              <option value="reunion">Reunión</option>
+              <option value="tarea">Tarea</option>
+              <option value="estudio">Estudio</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="filterPriority" class="form-label">Prioridad</label>
+            <select class="form-select" id="filterPriority">
+              <option value="">Todas las prioridades</option>
+              <option value="alta">Alta</option>
+              <option value="media">Media</option>
+              <option value="baja">Baja</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-outline-secondary w-100" id="clearFilters">
+              <i class="bi bi-arrow-clockwise"></i> Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor de pizarras -->
+    <div class="board-container" id="boardsContainer">
+      <!-- Las pizarras se cargarán dinámicamente aquí -->
+    </div>
+  </div>
+
+  <!-- Modal para crear nueva pizarra -->
+  <div class="modal fade" id="newBoardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Crear nueva pizarra</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="newBoardForm">
+            <div class="mb-3">
+              <label for="boardTitle" class="form-label">Título de la pizarra*</label>
+              <input type="text" class="form-control" id="boardTitle" required maxlength="100" placeholder="Ej: Proyecto Final de Matemáticas">
+            </div>
+            <div class="mb-3">
+              <label for="boardContent" class="form-label">Descripción*</label>
+              <textarea class="form-control" id="boardContent" rows="3" required maxlength="500" placeholder="Describe el objetivo y contenido de esta pizarra..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="boardCategory" class="form-label">Categoría*</label>
+              <select class="form-select" id="boardCategory" required>
+                <option value="">Seleccione una categoría</option>
+                <option value="proyecto">Proyecto</option>
+                <option value="reunion">Reunión</option>
+                <option value="tarea">Tarea</option>
+                <option value="estudio">Estudio</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="boardPriority" class="form-label">Prioridad*</label>
+              <select class="form-select" id="boardPriority" required>
+                <option value="alta">Alta</option>
+                <option value="media" selected>Media</option>
+                <option value="baja">Baja</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="createBoardBtn">
+            <span class="spinner-border spinner-border-sm d-none" id="createBoardSpinner" role="status" aria-hidden="true"></span>
+            <span id="createBoardBtnText">Crear Pizarra</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para crear nueva tarjeta -->
+  <div class="modal fade" id="newCardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Crear nueva tarjeta</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="newCardForm">
+            <div class="mb-3">
+              <label for="cardTitle" class="form-label">Título*</label>
+              <input type="text" class="form-control" id="cardTitle" required maxlength="100" placeholder="Ej: Investigar bibliografía">
+            </div>
+            <div class="mb-3">
+              <label for="cardContent" class="form-label">Descripción*</label>
+              <textarea class="form-control" id="cardContent" rows="3" required maxlength="500" placeholder="Describe la tarea o actividad..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="cardPriority" class="form-label">Prioridad</label>
+              <select class="form-select" id="cardPriority">
+                <option value="alta">Alta</option>
+                <option value="media" selected>Media</option>
+                <option value="baja">Baja</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="createCardBtn">
+            <span class="spinner-border spinner-border-sm d-none" id="createCardSpinner" role="status" aria-hidden="true"></span>
+            Crear Tarjeta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para visualizar pizarra (Kanban) -->
+  <div class="modal fade board-modal" id="boardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="boardModalTitle">Pizarra</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="cards-columns" id="boardColumns">
+            <!-- Columnas Kanban se generarán dinámicamente -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <small class="text-muted me-auto">Arrastra las tarjetas entre columnas para cambiar su estado</small>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de notificaciones -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/services/authService.js"></script>
+  <script src="../assets/js/services/whiteboardService.js"></script>
+  <script src="../assets/js/modules/whiteboardModule.js"></script>
+  <script>
+    // Inicializar la página de pizarras
+    document.addEventListener('DOMContentLoaded', function() {
+      // Verificar autenticación
+      const authToken = localStorage.getItem('authToken');
+      const userSession = localStorage.getItem('userSession');
+      
+      if (!authToken && !userSession) {
+        window.location.href = '../index.html';
+        return;
+      }
+      
+      // Mostrar nombre de usuario
+      const userName = localStorage.getItem('userName') || 'Usuario';
+      document.getElementById('userName').textContent = userName;
+      
+      // Inicializar módulo de pizarras
+      if (typeof WhiteboardModule !== 'undefined') {
+        WhiteboardModule.init();
+      }
+      
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+          localStorage.clear();
+          window.location.href = '../index.html';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

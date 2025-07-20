@@ -114,7 +114,7 @@ class RegisterModule {
 
   redirectToLogin() {
     setTimeout(() => {
-      window.location.href = "../index.html";
+      window.location.href = "login.html";
     }, 2000);
   }
 }

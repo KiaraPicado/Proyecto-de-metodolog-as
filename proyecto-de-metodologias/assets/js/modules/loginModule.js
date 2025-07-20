@@ -88,7 +88,7 @@ class LoginModule {
 
   redirectToHome() {
     setTimeout(() => {
-      window.location.href = "pages/inicio.html";
+      window.location.href = "../dashboard.html";
     }, 1000);
   }
 }
