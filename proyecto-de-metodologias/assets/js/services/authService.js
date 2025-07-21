@@ -19,6 +19,7 @@ class AuthService {
         { correo, clave },
         { headers: { "Content-Type": "application/json" } }
       );
+      console.log("TOKEN", response.data.token);
       return response;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Error de conexión al servidor');

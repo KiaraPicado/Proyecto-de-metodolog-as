@@ -68,7 +68,10 @@ const CardModule = {
           const boardId = webSocketService.currentBoardId;
           if (boardId) {
             console.log('🗑️ Notificando eliminación via Socket.IO');
-            // El servidor se encargará de enviar el evento a otros usuarios
+            webSocketService.emitCardRemoved({
+              cardId: cardId,
+              pizarra_id: boardId
+            });
           }
         }
         
@@ -80,10 +83,38 @@ const CardModule = {
         throw new Error('Error al eliminar la tarjeta');
       }
     } catch (error) {
-      // Si la tarjeta ya no existe, la removemos del DOM
-      if (error.message.includes('no existe') || error.message.includes('eliminada')) {
+      console.log('🗑️ Error al eliminar tarjeta:', error.message);
+      
+      // Si la tarjeta ya no existe (404), la removemos del DOM y emitimos el evento
+      if (error.message.includes('no existe') || error.message.includes('eliminada') || error.message.includes('404')) {
+        console.log('🗑️ Tarjeta no existe en backend, removiendo del DOM...');
+        
+        // Emitir evento Socket.IO para sincronizar con otros usuarios
+        if (webSocketService && webSocketService.isSocketConnected()) {
+          const boardId = webSocketService.currentBoardId;
+          if (boardId) {
+            console.log('🗑️ Notificando eliminación de tarjeta inexistente via Socket.IO');
+            webSocketService.emitCardRemoved({
+              cardId: cardId,
+              pizarra_id: boardId
+            });
+          }
+        }
+        
+        // Remover del DOM localmente
         this.removeCardFromDOM(cardId);
-        throw new Error('La tarjeta ya fue eliminada');
+        
+        // Mostrar mensaje informativo en lugar de error
+        if (window.toastService) {
+          window.toastService.info('La tarjeta ya fue eliminada anteriormente');
+        }
+        
+        return { success: true, message: 'Tarjeta eliminada correctamente' };
+      }
+      
+      // Para otros errores, mostrar el mensaje de error
+      if (window.toastService) {
+        window.toastService.error(error.message);
       }
       throw error;
     }
@@ -183,11 +214,18 @@ const CardModule = {
       modal.hide();
       
       try {
-        await this.deleteCard(cardId);
-        if (window.toastService) {
-          window.toastService.success('Nota eliminada exitosamente');
+        const result = await this.deleteCard(cardId);
+        if (result && result.success) {
+          // No mostrar mensaje de éxito si el mensaje ya fue mostrado en deleteCard
+          if (!result.message || !result.message.includes('anteriormente')) {
+            if (window.toastService) {
+              window.toastService.success('Nota eliminada exitosamente');
+            }
+          }
         }
       } catch (error) {
+        // Solo mostrar error si realmente es un error, no si la tarjeta ya fue eliminada
+        console.error('❌ Error eliminando tarjeta:', error);
         if (window.toastService) {
           window.toastService.error(error.message);
         }

@@ -207,6 +207,19 @@ class WebSocketService {
   }
 
   /**
+   * Emitir evento de tarjeta eliminada
+   */
+  emitCardRemoved(cardData) {
+    if (!this.socket || !this.isConnected) {
+      console.warn('Socket no está conectado, no se puede emitir evento de eliminación');
+      return;
+    }
+
+    console.log('🗑️ Emitiendo evento removeCard:', cardData);
+    this.socket.emit('removeCard', cardData);
+  }
+
+  /**
    * Manejar nueva tarjeta agregada (según estructura de tu servidor)
    */
   handleCardAdded(data) {

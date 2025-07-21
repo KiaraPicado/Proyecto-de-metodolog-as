@@ -147,47 +147,52 @@ const WhiteboardModule = {
   // Manejar eliminación de tarjeta en tiempo real
   handleRealTimeCardDeleted(data) {
     console.log('🗑️ Tarjeta eliminada en tiempo real:', data);
+    console.log('🗑️ Estructura de datos recibida:', JSON.stringify(data, null, 2));
     
-    // Solo procesar si estamos viendo la pizarra correspondiente
-    if (this.currentBoardId && (data.boardId === this.currentBoardId || data.pizarra_id === this.currentBoardId)) {
+    // Como el backend emite a la sala general 'pizarra', necesitamos verificar si la tarjeta existe en nuestra pizarra actual
+    // El backend solo envía { cardId, removedBy, timestamp }
+    const cardId = data.cardId || data.id;
+    
+    // Buscar la tarjeta en el DOM para verificar si pertenece a nuestra pizarra actual
+    const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+    
+    // Solo procesar si la tarjeta existe en nuestra vista actual (significa que está en nuestra pizarra)
+    if (cardElement) {
+      cardElement.remove();
       
-      // Buscar y eliminar la tarjeta del DOM
-      const cardElement = document.querySelector(`[data-card-id="${data.cardId || data.id}"]`);
-      if (cardElement) {
-        cardElement.remove();
-        
-        // Actualizar la lista local
-        this.currentBoardCards = this.currentBoardCards.filter(card => 
-          card.id !== (data.cardId || data.id)
-        );
-        
-        // Actualizar el contador en el header
-        const boardHeader = document.querySelector('#boardModal .board-header h6');
-        if (boardHeader) {
-          boardHeader.innerHTML = `<i class="bi bi-sticky me-2"></i>Notas y Tareas (${this.currentBoardCards.length})`;
-        }
-        
-        // Si no quedan tarjetas, mostrar mensaje vacío
-        const cardsGrid = document.querySelector('#boardModal .cards-grid');
-        if (cardsGrid && this.currentBoardCards.length === 0) {
-          cardsGrid.innerHTML = `
-            <div class="empty-board-message">
-              <i class="bi bi-sticky display-1 text-muted"></i>
-              <h5 class="text-muted mt-3">No hay notas en esta pizarra</h5>
-              <p class="text-muted">Agrega tu primera nota para comenzar a colaborar</p>
-            </div>
-          `;
-        }
-        
-        // Mostrar notificación solo si no fue el usuario actual quien la eliminó
-        const currentUserName = localStorage.getItem('userName');
-        const deletedByUser = data.removedBy?.userName || data.deletedBy?.userName;
-        if (deletedByUser && deletedByUser !== currentUserName) {
-          if (window.toastService) {
-            window.toastService.info(`Tarjeta eliminada por ${deletedByUser}`);
-          }
+      // Actualizar la lista local
+      this.currentBoardCards = this.currentBoardCards.filter(card => 
+        card.id !== cardId
+      );
+      
+      // Actualizar el contador en el header
+      const boardHeader = document.querySelector('#boardModal .board-header h6');
+      if (boardHeader) {
+        boardHeader.innerHTML = `<i class="bi bi-sticky me-2"></i>Notas y Tareas (${this.currentBoardCards.length})`;
+      }
+      
+      // Si no quedan tarjetas, mostrar mensaje vacío
+      const cardsGrid = document.querySelector('#boardModal .cards-grid');
+      if (cardsGrid && this.currentBoardCards.length === 0) {
+        cardsGrid.innerHTML = `
+          <div class="empty-board-message">
+            <i class="bi bi-sticky display-1 text-muted"></i>
+            <h5 class="text-muted mt-3">No hay notas en esta pizarra</h5>
+            <p class="text-muted">Agrega tu primera nota para comenzar a colaborar</p>
+          </div>
+        `;
+      }
+      
+      // Mostrar notificación solo si no fue el usuario actual quien la eliminó
+      const currentUserName = localStorage.getItem('userName');
+      const deletedByUser = data.removedBy?.userName || data.deletedBy?.userName;
+      if (deletedByUser && deletedByUser !== currentUserName) {
+        if (window.toastService) {
+          window.toastService.info(`Tarjeta eliminada por ${deletedByUser}`);
         }
       }
+    } else {
+      console.log('🗑️ Tarjeta no encontrada en esta pizarra, ignorando evento de eliminación');
     }
   },
 
