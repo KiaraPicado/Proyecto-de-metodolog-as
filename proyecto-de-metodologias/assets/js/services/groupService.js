@@ -30,7 +30,7 @@ class GroupService {
     try {
       const token = this.getAuthToken();
       
-      const response = await axios.get(`${this.baseURL}/grupos`, {
+      const response = await axios.get(`${this.baseURL}/groups`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -50,7 +50,7 @@ class GroupService {
     try {
       const token = this.getAuthToken();
       
-      const response = await axios.get(`${this.baseURL}/grupos/${groupId}`, {
+      const response = await axios.get(`${this.baseURL}/groups/${groupId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -19,11 +19,189 @@ const WhiteboardModule = {
     this.setupEventListeners();
     this.loadGroups();
     this.loadBoards();
+    this.initializeSocketIO();
   },
 
   // ========================================
   // MÉTODOS DE CONFIGURACIÓN Y UTILIDADES
   // ========================================
+
+  // Inicializar Socket.IO
+  initializeSocketIO() {
+    console.log('🔌 Inicializando Socket.IO para pizarras...');
+    
+    // Conectar WebSocket
+    if (webSocketService) {
+      webSocketService.connect();
+      
+      // Configurar manejadores de eventos específicos para pizarras
+      webSocketService.on('cardAdded', (data) => {
+        this.handleRealTimeCardAdded(data);
+      });
+
+      webSocketService.on('cardDeleted', (data) => {
+        this.handleRealTimeCardDeleted(data);
+      });
+
+      webSocketService.on('pizarraCreated', (data) => {
+        this.handleRealTimePizarraCreated(data);
+      });
+    } else {
+      console.warn('webSocketService no está disponible');
+    }
+  },
+
+  // Manejar nueva tarjeta en tiempo real
+  // Manejar nueva tarjeta en tiempo real
+  handleRealTimeCardAdded(data) {
+    console.log('📝 [WhiteboardModule] Recibida nueva tarjeta en tiempo real:', data);
+    console.log('🔍 Estado actual - currentBoardId:', this.currentBoardId, 'data.pizarra_id:', data.pizarra_id);
+    
+    // Normalizar la estructura de datos que puede venir del servidor
+    const normalizedCard = {
+      id: data.id,
+      titulo: data.title || data.titulo || 'Sin título',
+      contenido: data.content || data.contenido || 'Sin contenido',
+      pizarra_id: data.pizarra_id,
+      creador_nombre: data.addedBy?.userName || data.creador_nombre || data.usuario_nombre || 'Usuario',
+      creado_en: data.timestamp || data.creado_en || new Date().toISOString()
+    };
+    
+    console.log('📋 Tarjeta normalizada:', normalizedCard);
+    
+    // Debug: Estado completo del modal
+    const boardModal = document.getElementById('boardModal');
+    const cardsGrid = document.querySelector('#boardModal .cards-grid');
+    console.log('🔍 Debug estado del modal:');
+    console.log('- Modal existe:', !!boardModal);
+    console.log('- Modal visible:', boardModal?.classList.contains('show'));
+    console.log('- Cards grid existe:', !!cardsGrid);
+    console.log('- CardModule disponible:', !!CardModule);
+    console.log('- currentBoardCards length:', this.currentBoardCards.length);
+    
+    // Solo procesar si estamos viendo la pizarra correspondiente
+    if (this.currentBoardId && normalizedCard.pizarra_id === this.currentBoardId) {
+      console.log('✅ Procesando tarjeta para la pizarra actual');
+      
+      if (cardsGrid && CardModule) {
+        // Verificar si ya existe el mensaje de "no hay notas"
+        const emptyMessage = cardsGrid.querySelector('.empty-board-message');
+        if (emptyMessage) {
+          console.log('🗑️ Removiendo mensaje vacío');
+          emptyMessage.remove();
+        }
+        
+        console.log('🎯 Intentando crear elemento de tarjeta con data normalizada:', normalizedCard);
+        
+        // Crear y agregar la nueva tarjeta usando CardModule
+        try {
+          const cardElement = CardModule.createCardElement(normalizedCard);
+          console.log('✅ Elemento de tarjeta creado:', cardElement);
+          
+          // Verificar que no existe ya una tarjeta con el mismo ID
+          const existingCard = cardsGrid.querySelector(`[data-card-id="${normalizedCard.id}"]`);
+          if (existingCard) {
+            console.log('⚠️ Tarjeta ya existe, no agregando duplicado');
+            return;
+          }
+          
+          cardsGrid.appendChild(cardElement);
+          console.log('✅ Tarjeta agregada al DOM en tiempo real');
+          
+          // Actualizar el contador en el header
+          const boardHeader = document.querySelector('#boardModal .board-header h6');
+          if (boardHeader) {
+            const currentCount = this.currentBoardCards.length + 1;
+            boardHeader.innerHTML = `<i class="bi bi-sticky me-2"></i>Notas y Tareas (${currentCount})`;
+            console.log('📊 Contador actualizado a:', currentCount);
+          }
+          
+          // Agregar a la lista local
+          this.currentBoardCards.push(normalizedCard);
+          console.log('📝 Tarjeta agregada a currentBoardCards. Total:', this.currentBoardCards.length);
+          
+          // Mostrar notificación
+          const currentUserName = localStorage.getItem('userName');
+          if (normalizedCard.creador_nombre !== currentUserName && window.toastService) {
+            window.toastService.success(`Nueva tarjeta agregada: "${normalizedCard.titulo}"`);
+          }
+          
+        } catch (error) {
+          console.error('❌ Error creando elemento de tarjeta:', error);
+          console.log('🔍 Data normalizada:', normalizedCard);
+          console.log('🔍 Error stack:', error.stack);
+        }
+        
+      } else {
+        console.warn('❌ No se encontró el contenedor de tarjetas o CardModule no está disponible');
+        console.log('- cardsGrid:', cardsGrid);
+        console.log('- CardModule:', CardModule);
+      }
+    } else {
+      console.log('⏩ Ignorando tarjeta - no es para la pizarra actual o no hay pizarra abierta');
+      console.log('- currentBoardId:', this.currentBoardId);
+      console.log('- normalizedCard.pizarra_id:', normalizedCard.pizarra_id);
+    }
+  },
+
+  // Manejar eliminación de tarjeta en tiempo real
+  handleRealTimeCardDeleted(data) {
+    console.log('🗑️ Tarjeta eliminada en tiempo real:', data);
+    
+    // Solo procesar si estamos viendo la pizarra correspondiente
+    if (this.currentBoardId && (data.boardId === this.currentBoardId || data.pizarra_id === this.currentBoardId)) {
+      
+      // Buscar y eliminar la tarjeta del DOM
+      const cardElement = document.querySelector(`[data-card-id="${data.cardId || data.id}"]`);
+      if (cardElement) {
+        cardElement.remove();
+        
+        // Actualizar la lista local
+        this.currentBoardCards = this.currentBoardCards.filter(card => 
+          card.id !== (data.cardId || data.id)
+        );
+        
+        // Actualizar el contador en el header
+        const boardHeader = document.querySelector('#boardModal .board-header h6');
+        if (boardHeader) {
+          boardHeader.innerHTML = `<i class="bi bi-sticky me-2"></i>Notas y Tareas (${this.currentBoardCards.length})`;
+        }
+        
+        // Si no quedan tarjetas, mostrar mensaje vacío
+        const cardsGrid = document.querySelector('#boardModal .cards-grid');
+        if (cardsGrid && this.currentBoardCards.length === 0) {
+          cardsGrid.innerHTML = `
+            <div class="empty-board-message">
+              <i class="bi bi-sticky display-1 text-muted"></i>
+              <h5 class="text-muted mt-3">No hay notas en esta pizarra</h5>
+              <p class="text-muted">Agrega tu primera nota para comenzar a colaborar</p>
+            </div>
+          `;
+        }
+        
+        // Mostrar notificación solo si no fue el usuario actual quien la eliminó
+        const currentUserName = localStorage.getItem('userName');
+        const deletedByUser = data.removedBy?.userName || data.deletedBy?.userName;
+        if (deletedByUser && deletedByUser !== currentUserName) {
+          if (window.toastService) {
+            window.toastService.info(`Tarjeta eliminada por ${deletedByUser}`);
+          }
+        }
+      }
+    }
+  },
+
+  // Manejar nueva pizarra creada en tiempo real
+  handleRealTimePizarraCreated(data) {
+    console.log('📋 Nueva pizarra creada en tiempo real:', data);
+    
+    // Recargar la lista de pizarras
+    this.loadBoards();
+    
+    if (window.toastService) {
+      window.toastService.success(`Nueva pizarra creada: "${data.titulo}" por ${data.creador}`);
+    }
+  },
 
   // Configurar event listeners
   setupEventListeners() {
@@ -71,19 +249,31 @@ const WhiteboardModule = {
       const userSession = localStorage.getItem('userSession');
       
       if (!authToken && !userSession) {
+        console.warn('No hay token de autenticación para cargar grupos');
         this.setDefaultGroups();
         return;
       }
 
+      console.log('📊 Cargando grupos desde el backend...');
       const response = await groupService.getUserGroups();
-      if (response.success) {
-        this.groups = response.data || [];
+      
+      console.log('🔍 Respuesta completa del backend:', response);
+      console.log('🔍 response.success:', response.success);
+      console.log('🔍 response.data:', response.data);
+      console.log('🔍 Tipo de response.data:', typeof response.data);
+      console.log('🔍 Es array response.data:', Array.isArray(response.data));
+      
+      if (response.success && response.data && response.data.length > 0) {
+        this.groups = response.data;
+        console.log('✅ Grupos asignados a this.groups:', this.groups);
         this.populateGroupSelects();
       } else {
+        console.warn('No se encontraron grupos, usando grupos predeterminados');
         this.setDefaultGroups();
       }
     } catch (error) {
       console.error('Error al cargar grupos:', error);
+      console.warn('Usando grupos predeterminados debido al error');
       this.setDefaultGroups();
     }
   },
@@ -91,9 +281,9 @@ const WhiteboardModule = {
   // Establecer grupos predeterminados
   setDefaultGroups() {
     this.groups = [
-      { id: 1, nombre: 'Grupo General' },
-      { id: 2, nombre: 'Equipo de Desarrollo' },
-      { id: 3, nombre: 'Gestión de Proyectos' }
+      { id: 1, nombre_grupo: 'Grupo General' },
+      { id: 2, nombre_grupo: 'Equipo de Desarrollo' },
+      { id: 3, nombre_grupo: 'Gestión de Proyectos' }
     ];
     this.populateGroupSelects();
   },
@@ -103,6 +293,8 @@ const WhiteboardModule = {
     const boardGroupSelect = document.getElementById('boardGroup');
     const filterGroupSelect = document.getElementById('filterGroup');
 
+    console.log('🔍 Datos de grupos para poblar selects:', this.groups);
+
     [boardGroupSelect, filterGroupSelect].forEach(select => {
       if (select) {
         while (select.children.length > 1) {
@@ -111,21 +303,36 @@ const WhiteboardModule = {
       }
     });
 
-    this.groups.forEach(group => {
+    this.groups.forEach((group, index) => {
+      console.log(`📝 Procesando grupo ${index}:`, {
+        id: group.id,
+        nombre_grupo: group.nombre_grupo,
+        nombre: group.nombre,
+        descripcion: group.descripcion
+      });
+
       if (boardGroupSelect) {
         const option = document.createElement('option');
         option.value = group.id;
-        option.textContent = group.nombre;
+        // Usar múltiples fallbacks para el nombre
+        option.textContent = group.nombre_grupo || group.nombre || group.name || group.titulo || `Grupo ${group.id}`;
         boardGroupSelect.appendChild(option);
+        console.log(`✅ Opción agregada al boardGroupSelect: ${option.textContent}`);
       }
 
       if (filterGroupSelect) {
         const option = document.createElement('option');
         option.value = group.id;
-        option.textContent = group.nombre;
+        // Usar múltiples fallbacks para el nombre
+        option.textContent = group.nombre_grupo || group.nombre || group.name || group.titulo || `Grupo ${group.id}`;
         filterGroupSelect.appendChild(option);
+        console.log(`✅ Opción agregada al filterGroupSelect: ${option.textContent}`);
       }
     });
+    
+    console.log(`📋 Selects poblados con ${this.groups.length} grupos`);
+    console.log('📋 boardGroupSelect opciones:', boardGroupSelect?.children.length);
+    console.log('📋 filterGroupSelect opciones:', filterGroupSelect?.children.length);
   },
 
   // Aplicar filtros
@@ -291,18 +498,25 @@ const WhiteboardModule = {
         descripcion: content
       };
 
+      console.log('📝 Creando pizarra con datos:', boardData);
       const result = await whiteboardService.createBoard(boardData);
 
       if (result.success) {
-        // Emitir evento WebSocket
-        this.emitPizarraCreated(result.data, title, content, groupId);
+        // El servidor automáticamente emitirá el evento Socket.IO cuando se cree la pizarra
+        // this.emitPizarraCreated(result.data, title, content, groupId);
         
         // Recargar pizarras
         await this.loadBoards();
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('newBoardModal'));
+        // Cerrar modal y limpiar formulario
+        const modalElement = document.getElementById('newBoardModal');
+        const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
         modal.hide();
-        document.getElementById('newBoardForm').reset();
+        
+        // Limpiar formulario después de un pequeño delay para evitar conflictos
+        setTimeout(() => {
+          document.getElementById('newBoardForm').reset();
+        }, 300);
         
         if (window.toastService) {
           window.toastService.success('Pizarra creada exitosamente');
@@ -354,9 +568,15 @@ const WhiteboardModule = {
         // Recargar la vista local
         await this.loadBoardCards(boardId);
         
-        const modal = bootstrap.Modal.getInstance(document.getElementById('newCardModal'));
+        // Cerrar modal y limpiar formulario
+        const modalElement = document.getElementById('newCardModal');
+        const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
         modal.hide();
-        document.getElementById('newCardForm').reset();
+        
+        // Limpiar formulario después de un pequeño delay
+        setTimeout(() => {
+          document.getElementById('newCardForm').reset();
+        }, 300);
         
         if (window.toastService) {
           window.toastService.success('Nota creada exitosamente');
@@ -402,6 +622,12 @@ const WhiteboardModule = {
     document.getElementById('boardModalTitle').textContent = board.titulo;
     document.getElementById('boardModal').dataset.boardId = board.id;
     
+    // Unirse a la sala de Socket.IO para esta pizarra
+    if (webSocketService && webSocketService.isSocketConnected()) {
+      webSocketService.joinBoard(board.id);
+      console.log(`📋 Conectado a la pizarra ${board.id} via Socket.IO`);
+    }
+    
     // Inicializar CardModule con usuario actual
     CardModule.init(this.currentUser, this.currentBoardId);
     
@@ -433,6 +659,11 @@ const WhiteboardModule = {
     // Listener para salir de la pizarra al cerrar modal
     const modalElement = document.getElementById('boardModal');
     modalElement.addEventListener('hidden.bs.modal', () => {
+      // Salir de la sala de Socket.IO
+      if (webSocketService && webSocketService.isSocketConnected()) {
+        webSocketService.leaveBoard(this.currentBoardId);
+        console.log(`📋 Desconectado de la pizarra ${this.currentBoardId} via Socket.IO`);
+      }
       this.currentBoardId = null;
     }, { once: true });
   },

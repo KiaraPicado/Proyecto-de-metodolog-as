@@ -31,8 +31,21 @@ const CardModule = {
       const result = await whiteboardService.createCard(cardData);
       
       if (result.success) {
-        // El servidor enviará el evento 'cardAdded' automáticamente
-        // No necesitamos emitir nada desde el cliente
+        // Emitir evento Socket.IO para actualizaciones en tiempo real
+        if (webSocketService && webSocketService.isSocketConnected()) {
+          const cardForSocket = {
+            id: result.data.id || result.data.insertId || Date.now(),
+            titulo: title,
+            contenido: content,
+            pizarra_id: boardId,
+            creador_nombre: localStorage.getItem('userName') || 'Usuario',
+            creado_en: new Date().toISOString()
+          };
+          
+          console.log('📝 Emitiendo evento de nueva tarjeta via Socket.IO:', cardForSocket);
+          webSocketService.emitCardAdded(cardForSocket);
+        }
+        
         return result;
       } else {
         throw new Error(result.message || 'Error al crear la tarjeta');
@@ -50,8 +63,14 @@ const CardModule = {
       const result = await whiteboardService.deleteCard(cardId);
       
       if (result.success) {
-        // El servidor enviará el evento 'cardRemoved' automáticamente
-        // No necesitamos emitir nada desde el cliente
+        // Emitir evento Socket.IO para notificar eliminación en tiempo real
+        if (webSocketService && webSocketService.isSocketConnected()) {
+          const boardId = webSocketService.currentBoardId;
+          if (boardId) {
+            console.log('🗑️ Notificando eliminación via Socket.IO');
+            // El servidor se encargará de enviar el evento a otros usuarios
+          }
+        }
         
         // Remover del DOM
         this.removeCardFromDOM(cardId);

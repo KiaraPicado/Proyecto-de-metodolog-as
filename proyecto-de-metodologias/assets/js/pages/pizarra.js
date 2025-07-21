@@ -89,6 +89,14 @@ class PizarraPage {
     console.log('- toastService:', typeof toastService !== 'undefined');
     console.log('- whiteboardService:', typeof whiteboardService !== 'undefined');
     
+    // Inicializar conexión WebSocket primero
+    if (typeof webSocketService !== 'undefined') {
+      console.log('🔌 Inicializando WebSocket...');
+      webSocketService.connect();
+    } else {
+      console.warn('❌ webSocketService no está disponible');
+    }
+    
     // Inicializar módulo de pizarras
     if (typeof WhiteboardModule !== 'undefined') {
       console.log('✅ Inicializando WhiteboardModule...');
