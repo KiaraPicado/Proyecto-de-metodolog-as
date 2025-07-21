@@ -116,21 +116,24 @@ class AuthService {
   }
 
   /**
-   * Redirigir al login
+   * Redirigir al login (index.html)
    */
   redirectToLogin() {
-    // Construir la URL relativa correcta
+    // Construir la URL relativa correcta para index.html
     const currentPath = window.location.pathname;
     const pathSegments = currentPath.split('/');
     
-    // Determinar cuántos niveles subir
+    // Determinar cuántos niveles subir para llegar al index.html
     let relativePath = '';
     if (pathSegments.includes('pages')) {
-      relativePath = './login.html';
+      // Si estamos en una subcarpeta como pages/, subir un nivel
+      relativePath = '../index.html';
     } else {
-      relativePath = './pages/login.html';
+      // Si estamos en la raíz, ir directo al index
+      relativePath = './index.html';
     }
     
+    console.log('🔄 Redirigiendo al login:', relativePath);
     window.location.href = relativePath;
   }
 
@@ -267,6 +270,15 @@ class AuthService {
    * Configurar manejadores de logout globales
    */
   setupLogoutHandlers() {
+    // Buscar elemento específico por ID (logoutBtn)
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.confirmLogout();
+      });
+    }
+    
     // Buscar todos los elementos con data-action="logout"
     const logoutElements = document.querySelectorAll('[data-action="logout"]');
     

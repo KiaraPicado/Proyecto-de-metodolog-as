@@ -105,8 +105,9 @@ const WhiteboardModule = {
             return;
           }
           
-          cardsGrid.appendChild(cardElement);
-          console.log('✅ Tarjeta agregada al DOM en tiempo real');
+          // Agregar la tarjeta al principio del contenedor (prepend en lugar de appendChild)
+          cardsGrid.prepend(cardElement);
+          console.log('✅ Tarjeta agregada al DOM en tiempo real (al principio)');
           
           // Actualizar el contador en el header
           const boardHeader = document.querySelector('#boardModal .board-header h6');
@@ -116,9 +117,9 @@ const WhiteboardModule = {
             console.log('📊 Contador actualizado a:', currentCount);
           }
           
-          // Agregar a la lista local
-          this.currentBoardCards.push(normalizedCard);
-          console.log('📝 Tarjeta agregada a currentBoardCards. Total:', this.currentBoardCards.length);
+          // Agregar a la lista local al principio (para mantener orden de más reciente primero)
+          this.currentBoardCards.unshift(normalizedCard);
+          console.log('📝 Tarjeta agregada al principio de currentBoardCards. Total:', this.currentBoardCards.length);
           
           // Mostrar notificación
           const currentUserName = localStorage.getItem('userName');
@@ -603,7 +604,16 @@ const WhiteboardModule = {
     try {
       const response = await whiteboardService.getBoardCards(boardId);
       if (response.success) {
-        this.currentBoardCards = response.data;
+        // Ordenar las tarjetas por fecha de creación (más recientes primero)
+        const sortedCards = [...response.data].sort((a, b) => {
+          const dateA = new Date(a.creado_en || a.timestamp || 0);
+          const dateB = new Date(b.creado_en || b.timestamp || 0);
+          return dateB - dateA; // Orden descendente (más reciente primero)
+        });
+        
+        this.currentBoardCards = sortedCards;
+        console.log('📋 Tarjetas cargadas y ordenadas por fecha (más recientes primero)');
+        
         // Si el modal está abierto, actualizar la vista
         if (document.getElementById('boardModal').classList.contains('show')) {
           const board = this.boards.find(b => b.id === boardId);
@@ -641,8 +651,16 @@ const WhiteboardModule = {
       const cardsResponse = await whiteboardService.getBoardCards(board.id);
       
       if (cardsResponse.success) {
-        board.cards = cardsResponse.data;
-        this.currentBoardCards = cardsResponse.data;
+        // Ordenar las tarjetas por fecha de creación (más recientes primero)
+        const sortedCards = [...cardsResponse.data].sort((a, b) => {
+          const dateA = new Date(a.creado_en || a.timestamp || 0);
+          const dateB = new Date(b.creado_en || b.timestamp || 0);
+          return dateB - dateA; // Orden descendente (más reciente primero)
+        });
+        
+        board.cards = sortedCards;
+        this.currentBoardCards = sortedCards;
+        console.log('📋 Tarjetas de pizarra cargadas y ordenadas por fecha (más recientes primero)');
       } else {
         board.cards = [];
         this.currentBoardCards = [];
@@ -710,8 +728,17 @@ const WhiteboardModule = {
         </div>
       `;
     } else {
+      // Ordenar tarjetas por fecha de creación (más recientes primero)
+      const sortedCards = [...board.cards].sort((a, b) => {
+        const dateA = new Date(a.creado_en || a.timestamp || 0);
+        const dateB = new Date(b.creado_en || b.timestamp || 0);
+        return dateB - dateA; // Orden descendente (más reciente primero)
+      });
+      
+      console.log('📋 Renderizando tarjetas ordenadas por fecha (más recientes primero)');
+      
       // Usar CardModule para crear elementos de tarjeta
-      board.cards.forEach(card => {
+      sortedCards.forEach(card => {
         cardsGrid.appendChild(CardModule.createCardElement(card));
       });
     }

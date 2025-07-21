@@ -190,7 +190,7 @@ class DashboardModule {
    */
   loadForumsCreateSection() {
     // Redirigir a la página de foros (ahora incluye crear en modal)
-    window.location.href = 'forums/list.html';
+    window.location.href = 'list.html';
   }
 
   /**
@@ -198,7 +198,7 @@ class DashboardModule {
    */
   loadForumsListSection() {
     // Redirigir a la página de lista de foros
-    window.location.href = 'forums/list.html';
+    window.location.href = 'list.html';
   }
 
   /**

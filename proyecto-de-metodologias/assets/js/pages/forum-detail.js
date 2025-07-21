@@ -26,7 +26,7 @@ class ForumDetailPage {
     const userSession = localStorage.getItem('userSession');
 
     if (!authToken && !userSession) {
-      window.location.href = '../../index.html';
+      window.location.href = '../index.html';
       return false;
     }
 
@@ -41,7 +41,7 @@ class ForumDetailPage {
       } catch (error) {
         console.error('Error al parsear la sesión:', error);
         localStorage.clear();
-        window.location.href = '../../index.html';
+        window.location.href = '../index.html';
         return false;
       }
     }
@@ -399,7 +399,7 @@ class ForumDetailPage {
       // Fallback al método anterior
       if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
         localStorage.clear();
-        window.location.href = '../../index.html';
+        window.location.href = '../index.html';
       }
     }
   }
